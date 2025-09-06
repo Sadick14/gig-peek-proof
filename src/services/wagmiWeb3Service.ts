@@ -304,24 +304,33 @@ class WagmiWeb3Service {
   }
 
   async getAllDealsForUser(userAddress: string) {
+    console.log('getAllDealsForUser called with address:', userAddress);
     if (!this.contract) {
+      console.log('Contract not initialized, initializing...');
       await this.initialize();
     }
 
     try {
+      console.log('Getting client deals...');
       // Get deals where user is client
       const clientDealIds = await this.getDealsByClient(userAddress);
+      console.log('Client deal IDs:', clientDealIds);
       
+      console.log('Getting contractor deals...');
       // Get deals where user is contractor
       const contractorDealIds = await this.getDealsByContractor(userAddress);
+      console.log('Contractor deal IDs:', contractorDealIds);
       
       // Combine all deal IDs
       const allDealIds = [...new Set([...clientDealIds, ...contractorDealIds])];
+      console.log('All deal IDs:', allDealIds);
       
       // Fetch full deal data for each ID
       const deals = await Promise.all(
         allDealIds.map(async (dealId) => {
+          console.log('Fetching deal data for ID:', dealId);
           const deal = await this.getDeal(dealId.toString());
+          console.log('Deal data:', deal);
           return {
             id: dealId.toString(),
             contractorAddress: deal.contractor,
@@ -340,6 +349,7 @@ class WagmiWeb3Service {
         })
       );
       
+      console.log('Final processed deals:', deals);
       return deals;
     } catch (error) {
       console.error('Error fetching user deals:', error);

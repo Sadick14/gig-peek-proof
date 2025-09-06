@@ -56,14 +56,19 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Function to fetch deals from blockchain
   const refreshDeals = async () => {
     if (!isConnected || !address) {
+      console.log('No wallet connected, clearing deals');
       setDeals([]);
       return;
     }
 
+    console.log('Fetching deals for address:', address);
     setIsLoadingDeals(true);
     try {
+      console.log('Initializing wagmiWeb3Service...');
       await wagmiWeb3Service.initialize();
+      console.log('Fetching deals from blockchain...');
       const blockchainDeals = await wagmiWeb3Service.getAllDealsForUser(address);
+      console.log('Fetched deals:', blockchainDeals);
       setDeals(blockchainDeals);
     } catch (error) {
       console.error('Error fetching deals from blockchain:', error);
