@@ -7,6 +7,7 @@ import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
 import { toast } from '@/hooks/use-toast';
+import { wagmiWeb3Service } from '@/services/wagmiWeb3Service';
 import { 
   ArrowLeft, 
   Briefcase, 
@@ -15,12 +16,13 @@ import {
   Shield,
   AlertTriangle,
   CheckCircle,
-  Loader2
+  Loader2,
+  ExternalLink
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
 export function CreateDeal() {
-  const { addDeal } = useApp();
+  const { addDeal, refreshDeals } = useApp();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
     contractorAddress: '',
@@ -77,32 +79,50 @@ export function CreateDeal() {
     setLoading(true);
     
     try {
-      // Simulate smart contract interaction
+      // Connect to wallet first
       toast({
-        title: "Creating Deal...",
-        description: "Please confirm the transaction in your wallet",
+        title: "Connecting to Wallet...",
+        description: "Please ensure MetaMask is connected and on Sepolia testnet",
       });
 
-      // Simulate blockchain transaction delay
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      await wagmiWeb3Service.initialize();
       
-      const newDeal = {
-        id: `deal_${Date.now()}`,
-        contractorAddress: formData.contractorAddress,
-        title: formData.title,
-        description: formData.description,
-        amount: formData.amount,
-        deadline: formData.deadline,
-        status: 'active' as const,
-        createdAt: new Date(),
-        txHash: `0x${Math.random().toString(16).substr(2, 64)}`
-      };
+      // Convert deadline to timestamp
+      const deadlineTimestamp = Math.floor(new Date(formData.deadline).getTime() / 1000);
+      
+      toast({
+        title: "Creating Deal...",
+        description: "Please confirm the transaction in MetaMask. This will escrow your ETH.",
+      });
 
-      addDeal(newDeal);
+      // Create deal on blockchain
+      const result = await wagmiWeb3Service.createDeal(
+        formData.contractorAddress,
+        formData.title,
+        formData.description,
+        deadlineTimestamp,
+        formData.amount
+      );
+      
+      // Refresh deals from blockchain to get the latest data
+      await refreshDeals();
       
       toast({
         title: "Deal Created Successfully!",
-        description: `Deal "${formData.title}" has been created and ${formData.amount} ETH has been escrowed.`,
+        description: (
+          <div className="space-y-3">
+            <p>Deal "{formData.title}" has been created and {formData.amount} ETH has been escrowed.</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs opacity-75">Transaction: {result.txHash.slice(0, 10)}...</p>
+              <button
+                onClick={() => window.open(`https://sepolia.etherscan.io/tx/${result.txHash}`, '_blank')}
+                className="text-xs underline opacity-75 hover:opacity-100 flex items-center gap-1"
+              >
+                View on Etherscan <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        ),
       });
 
       // Reset form
@@ -120,11 +140,11 @@ export function CreateDeal() {
         navigate('/dashboard/active-deals');
       }, 2000);
       
-    } catch (error) {
+    } catch (error: any) {
       console.error('Error creating deal:', error);
       toast({
-        title: "Error",
-        description: "Failed to create deal. Please try again.",
+        title: "Transaction Failed",
+        description: error.message || "Failed to create deal. Please try again.",
         variant: "destructive"
       });
     } finally {
@@ -315,12 +335,13 @@ export function CreateDeal() {
               <div className="flex items-start gap-3">
                 <AlertTriangle className="w-5 h-5 text-orange-500 flex-shrink-0 mt-0.5" />
                 <div>
-                  <h3 className="font-semibold text-orange-500 mb-2">Important Information</h3>
+                  <h3 className="font-semibold text-orange-500 mb-2">Blockchain Transaction</h3>
                   <ul className="text-sm text-muted-foreground space-y-1">
-                    <li>• Your {formData.amount} ETH will be locked in escrow until work completion</li>
-                    <li>• Only you can release payment after verifying the delivered work</li>
-                    <li>• The contractor cannot access funds until you approve</li>
-                    <li>• This transaction will require gas fees on Sepolia testnet</li>
+                    <li>• Your {formData.amount} ETH will be locked in the smart contract escrow</li>
+                    <li>• MetaMask will prompt you to confirm the transaction</li>
+                    <li>• Gas fees will be required for the Sepolia testnet transaction</li>
+                    <li>• Only you can release payment after verifying delivered work</li>
+                    <li>• The smart contract ensures secure and trustless execution</li>
                   </ul>
                 </div>
               </div>

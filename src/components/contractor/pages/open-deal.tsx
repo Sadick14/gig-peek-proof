@@ -4,16 +4,18 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { Search, CheckCircle, Hash } from "lucide-react";
+import { Search, CheckCircle, Hash, ExternalLink } from "lucide-react";
 import { useApp } from "@/context/AppContext";
 import { useToast } from "@/hooks/use-toast";
+import { wagmiWeb3Service } from '@/services/wagmiWeb3Service';
+import { ethers } from 'ethers';
 
 interface Deal {
   id: string;
   contractorAddress: string;
   description: string;
   amount: string;
-  status: 'waiting_proof' | 'proof_submitted' | 'completed';
+  status: 'active' | 'waiting_proof' | 'proof_submitted' | 'completed';
   createdAt: Date;
   proofHash?: string;
 }
@@ -23,10 +25,10 @@ const OpenDeal = () => {
   const [foundDeal, setFoundDeal] = useState<Deal | null>(null);
   const [proofPreview, setProofPreview] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const { deals, user, updateDeal } = useApp();
+  const { deals, user, updateDeal, refreshDeals } = useApp();
   const { toast } = useToast();
 
-  const handleSearchDeal = () => {
+  const handleSearchDeal = async () => {
     if (!searchDealId.trim()) {
       toast({
         title: "Enter Deal ID",
@@ -36,34 +38,68 @@ const OpenDeal = () => {
       return;
     }
 
-    const deal = deals.find(d => d.id === searchDealId.trim());
-    if (deal) {
-      if (deal.contractorAddress.toLowerCase() !== user.address.toLowerCase()) {
+    try {
+      // First try to find in local deals
+      let deal = deals.find(d => d.id === searchDealId.trim());
+      
+      // If not found locally, try to fetch from blockchain
+      if (!deal) {
         toast({
-          title: "Access Denied",
-          description: "This deal is not assigned to your wallet address.",
+          title: "Searching blockchain...",
+          description: "Looking for deal on the blockchain",
+        });
+        
+        await wagmiWeb3Service.initialize();
+        const blockchainDeal = await wagmiWeb3Service.getDeal(searchDealId.trim());
+        
+        if (blockchainDeal) {
+          deal = {
+            id: searchDealId.trim(),
+            contractorAddress: blockchainDeal.contractor,
+            title: `Deal #${searchDealId.trim()}`,
+            description: blockchainDeal.workDescription,
+            amount: blockchainDeal.amount,
+            status: wagmiWeb3Service.mapBlockchainStatus(blockchainDeal.status) as 'active' | 'waiting_proof' | 'proof_submitted' | 'completed',
+            createdAt: new Date(blockchainDeal.createdAt * 1000),
+            proofHash: blockchainDeal.proofHash !== '0x0000000000000000000000000000000000000000000000000000000000000000' ? blockchainDeal.proofHash : undefined,
+          };
+        }
+      }
+      
+      if (deal) {
+        if (deal.contractorAddress.toLowerCase() !== user.address.toLowerCase()) {
+          toast({
+            title: "Access Denied",
+            description: "This deal is not assigned to your wallet address.",
+            variant: "destructive",
+          });
+          return;
+        }
+        setFoundDeal(deal);
+        toast({
+          title: "Deal Found!",
+          description: `Deal details loaded successfully.`,
+        });
+      } else {
+        toast({
+          title: "Deal Not Found",
+          description: "No deal found with this ID. Please check and try again.",
           variant: "destructive",
         });
-        return;
       }
-      setFoundDeal(deal);
+    } catch (error) {
+      console.error('Error searching for deal:', error);
       toast({
-        title: "Deal Found!",
-        description: `Deal details loaded successfully.`,
-      });
-    } else {
-      toast({
-        title: "Deal Not Found",
-        description: "No deal found with this ID. Please check and try again.",
+        title: "Search Error",
+        description: "Failed to search for deal. Please try again.",
         variant: "destructive",
       });
     }
   };
 
   const generateProofHash = (preview: string) => {
-    // Simulate hash generation (in real app, this would use crypto libraries)
-    const hash = `0x${Math.random().toString(36).substr(2, 64)}`;
-    return hash;
+    // Generate cryptographic hash using ethers.js
+    return ethers.keccak256(ethers.toUtf8Bytes(preview));
   };
 
   const handleSubmitProof = async () => {
@@ -71,25 +107,51 @@ const OpenDeal = () => {
 
     setIsSubmitting(true);
 
-    // Simulate proof submission
-    setTimeout(() => {
-      const proofHash = generateProofHash(proofPreview);
-      updateDeal(foundDeal.id, { 
-        status: 'proof_submitted',
-        proofHash 
+    try {
+      toast({
+        title: "Submitting Proof...",
+        description: "Please confirm the transaction in your wallet",
       });
+
+      // Generate proof hash and submit to blockchain
+      const proofHash = generateProofHash(proofPreview);
+      const result = await wagmiWeb3Service.submitProof(foundDeal.id, proofHash);
+      
+      // Refresh deals from blockchain to get latest status
+      await refreshDeals();
       
       toast({
         title: "Proof Submitted Successfully!",
-        description: "Your proof has been recorded on the blockchain.",
+        description: (
+          <div className="space-y-3">
+            <p>Your proof has been recorded on the blockchain.</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs opacity-75">Transaction: {result.txHash.slice(0, 10)}...</p>
+              <button
+                onClick={() => window.open(`https://sepolia.etherscan.io/tx/${result.txHash}`, '_blank')}
+                className="text-xs underline opacity-75 hover:opacity-100 flex items-center gap-1"
+              >
+                View on Etherscan <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        ),
       });
 
       setProofPreview("");
-      setIsSubmitting(false);
       
       // Update the found deal to reflect new status
       setFoundDeal(prev => prev ? { ...prev, status: 'proof_submitted', proofHash } : null);
-    }, 2000);
+    } catch (error) {
+      console.error('Error submitting proof:', error);
+      toast({
+        title: "Error",
+        description: error instanceof Error ? error.message : "Failed to submit proof. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (

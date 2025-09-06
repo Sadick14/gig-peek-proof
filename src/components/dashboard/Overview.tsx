@@ -16,51 +16,76 @@ import {
 import { useNavigate } from "react-router-dom";
 
 export function Overview() {
-  const { currentRole, user } = useApp();
+  const { currentRole, user, deals, isLoadingDeals } = useApp();
   const navigate = useNavigate();
 
+  // Calculate real stats from blockchain data
+  const userDeals = deals.filter(deal => 
+    currentRole === 'client' 
+      ? deal.clientAddress?.toLowerCase() === user.address.toLowerCase()
+      : deal.contractorAddress.toLowerCase() === user.address.toLowerCase()
+  );
+
+  const activeDeals = userDeals.filter(deal => deal.status === 'active' || deal.status === 'proof_submitted');
+  const completedDeals = userDeals.filter(deal => deal.status === 'completed');
+  const totalAmount = userDeals.reduce((sum, deal) => sum + parseFloat(deal.amount || '0'), 0);
+
   const clientStats = [
-    { label: "Active Deals", value: "3", icon: Briefcase, color: "text-blue-500" },
-    { label: "Total Spent", value: "12.5 ETH", icon: DollarSign, color: "text-green-500" },
-    { label: "Completed", value: "8", icon: CheckCircle, color: "text-emerald-500" },
-    { label: "Success Rate", value: "96%", icon: TrendingUp, color: "text-purple-500" },
+    { label: "Active Deals", value: activeDeals.length.toString(), icon: Briefcase, color: "text-blue-500" },
+    { label: "Total Spent", value: `${totalAmount.toFixed(3)} ETH`, icon: DollarSign, color: "text-green-500" },
+    { label: "Completed", value: completedDeals.length.toString(), icon: CheckCircle, color: "text-emerald-500" },
+    { label: "Success Rate", value: userDeals.length > 0 ? `${Math.round((completedDeals.length / userDeals.length) * 100)}%` : "0%", icon: TrendingUp, color: "text-purple-500" },
   ];
 
   const contractorStats = [
-    { label: "Active Gigs", value: "2", icon: Briefcase, color: "text-blue-500" },
-    { label: "Total Earned", value: "8.3 ETH", icon: DollarSign, color: "text-green-500" },
-    { label: "Completed", value: "15", icon: CheckCircle, color: "text-emerald-500" },
+    { label: "Active Gigs", value: activeDeals.length.toString(), icon: Briefcase, color: "text-blue-500" },
+    { label: "Total Earned", value: `${completedDeals.reduce((sum, deal) => sum + parseFloat(deal.amount || '0'), 0).toFixed(3)} ETH`, icon: DollarSign, color: "text-green-500" },
+    { label: "Completed", value: completedDeals.length.toString(), icon: CheckCircle, color: "text-emerald-500" },
     { label: "Rating", value: "4.9★", icon: TrendingUp, color: "text-yellow-500" },
   ];
 
   const stats = currentRole === 'client' ? clientStats : contractorStats;
 
-  const recentActivity = [
-    {
-      id: 1,
-      title: "Website Design Project",
-      status: currentRole === 'client' ? "Waiting for delivery" : "In progress",
-      amount: "2.5 ETH",
-      time: "2 hours ago",
-      contractor: "0x742d...B2C1"
-    },
-    {
-      id: 2,
-      title: "Smart Contract Audit",
-      status: currentRole === 'client' ? "Completed" : "Submitted",
-      amount: "5.0 ETH",
-      time: "1 day ago",
-      contractor: "0x1234...5678"
-    },
-    {
-      id: 3,
-      title: "Mobile App Development",
-      status: currentRole === 'client' ? "Active" : "Accepted",
-      amount: "8.0 ETH",
-      time: "3 days ago",
-      contractor: "0x9876...4321"
+  // Get recent deals for activity section
+  const recentDeals = userDeals
+    .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())
+    .slice(0, 3)
+    .map(deal => ({
+      id: deal.id,
+      title: deal.title || `Deal #${deal.id}`,
+      status: getStatusText(deal.status, currentRole),
+      amount: `${deal.amount} ETH`,
+      time: getTimeAgo(deal.createdAt),
+      contractor: deal.contractorAddress
+    }));
+
+  function getStatusText(status: string, role: string | null) {
+    if (role === 'client') {
+      switch (status) {
+        case 'active': return 'Waiting for delivery';
+        case 'proof_submitted': return 'Ready for review';
+        case 'completed': return 'Completed';
+        default: return 'Active';
+      }
+    } else {
+      switch (status) {
+        case 'active': return 'In progress';
+        case 'proof_submitted': return 'Submitted';
+        case 'completed': return 'Completed';
+        default: return 'Active';
+      }
     }
-  ];
+  }
+
+  function getTimeAgo(date: Date) {
+    const now = new Date();
+    const diffTime = Math.abs(now.getTime() - date.getTime());
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays === 1) return '1 day ago';
+    if (diffDays < 7) return `${diffDays} days ago`;
+    return date.toLocaleDateString();
+  }
 
   return (
     <div className="space-y-8">
@@ -232,7 +257,15 @@ export function Overview() {
       <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
         <h3 className="text-xl font-semibold mb-4">Recent Activity</h3>
         <div className="space-y-4">
-          {recentActivity.map((activity) => (
+          {isLoadingDeals ? (
+            <div className="text-center py-8">
+              <div className="inline-flex items-center gap-2 text-muted-foreground">
+                <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin"></div>
+                Loading deals from blockchain...
+              </div>
+            </div>
+          ) : recentDeals.length > 0 ? (
+            recentDeals.map((activity) => (
             <div key={activity.id} className="flex items-center justify-between p-4 bg-background/50 rounded-lg border border-border/50">
               <div className="flex items-center gap-4">
                 <div className="p-2 bg-primary/10 rounded-lg">
@@ -255,7 +288,12 @@ export function Overview() {
                 </Badge>
               </div>
             </div>
-          ))}
+            ))
+          ) : (
+            <div className="text-center py-8 text-muted-foreground">
+              No recent activity found
+            </div>
+          )}
         </div>
       </Card>
     </div>

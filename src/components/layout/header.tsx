@@ -1,4 +1,4 @@
-import { WalletConnection } from "@/components/ui/wallet-connection";
+import { MultiWalletConnection } from "@/components/ui/multi-wallet-connection";
 import { Button } from "@/components/ui/button";
 import { Eye, Zap } from "lucide-react";
 
@@ -51,11 +51,7 @@ export function Header({ onConnect, isConnected, address, activeTab, onTabChange
           )}
 
           {/* Wallet Connection */}
-          <WalletConnection
-            onConnect={onConnect}
-            isConnected={isConnected}
-            address={address}
-          />
+          <MultiWalletConnection onConnect={onConnect} />
         </div>
       </div>
     </header>

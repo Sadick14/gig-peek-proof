@@ -1,8 +1,11 @@
-import { createContext, useContext, useState, ReactNode } from "react";
+import { createContext, useContext, useState, ReactNode, useEffect } from "react";
+import { useAccount } from 'wagmi';
+import { wagmiWeb3Service } from '@/services/wagmiWeb3Service';
 
 interface Deal {
   id: string;
   contractorAddress: string;
+  clientAddress?: string; // Add client address for filtering
   title?: string;
   description: string;
   amount: string;
@@ -11,6 +14,8 @@ interface Deal {
   createdAt: Date;
   proofHash?: string;
   txHash?: string;
+  transactionHash?: string; // For payment release transaction
+  userRole?: 'client' | 'contractor'; // Add user role for filtering
 }
 
 interface User {
@@ -24,62 +29,64 @@ interface AppContextType {
   user: User;
   deals: Deal[];
   currentRole: UserRole;
+  isLoadingDeals: boolean;
   connectWallet: (address: string) => void;
   setUserRole: (role: UserRole) => void;
   addDeal: (deal: Deal) => void;
   updateDeal: (dealId: string, updates: Partial<Deal>) => void;
+  refreshDeals: () => Promise<void>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [user, setUser] = useState<User>({ address: "", isConnected: false });
   const [currentRole, setCurrentRole] = useState<UserRole>(null);
+  const [deals, setDeals] = useState<Deal[]>([]);
+  const [isLoadingDeals, setIsLoadingDeals] = useState(false);
   
-  // Sample deals for demo purposes
-  const [deals, setDeals] = useState<Deal[]>([
-    {
-      id: 'deal_1734567890',
-      contractorAddress: '0x742d35Cc6644C4532B69d78af923aF3Cfd3abb3e',
-      title: 'React Authentication Component',
-      description: 'Create a React component for user authentication with wallet connection',
-      amount: '0.1',
-      status: 'active',
-      createdAt: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000), // 2 days ago
-      deadline: new Date(Date.now() + 5 * 24 * 60 * 60 * 1000).toISOString(), // 5 days from now
-    },
-    {
-      id: 'deal_1734567891',
-      contractorAddress: '0x8ba1f109551bD432803012645Hac136c5603a3',
-      title: 'Smart Contract Development',
-      description: 'Design and implement a smart contract for escrow payments',
-      amount: '0.25',
-      status: 'proof_submitted',
-      createdAt: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000), // 1 day ago
-      deadline: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(), // 3 days from now
-      proofHash: '0x1234567890abcdef1234567890abcdef1234567890abcdef1234567890abcdef'
-    },
-    {
-      id: 'deal_1734567892',
-      contractorAddress: '0x742d35Cc6644C4532B69d78af923aF3Cfd3abb3e',
-      title: 'Landing Page Design',
-      description: 'Build a responsive landing page with Tailwind CSS',
-      amount: '0.05',
-      status: 'completed',
-      createdAt: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000), // 5 days ago
-      deadline: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(), // completed 2 days ago
-      proofHash: '0xabcdef1234567890abcdef1234567890abcdef1234567890abcdef1234567890'
-    }
-  ]);
+  // Use Wagmi's useAccount hook for wallet connection state
+  const { address, isConnected } = useAccount();
+  
+  // Create user object from Wagmi state
+  const user = {
+    address: address || "",
+    isConnected: isConnected
+  };
 
-  const connectWallet = (address: string) => {
-    if (address) {
-      setUser({ address, isConnected: true });
-    } else {
-      // Handle disconnection
-      setUser({ address: "", isConnected: false });
-      setCurrentRole(null); // Reset role when disconnecting
+  // Function to fetch deals from blockchain
+  const refreshDeals = async () => {
+    if (!isConnected || !address) {
+      setDeals([]);
+      return;
     }
+
+    setIsLoadingDeals(true);
+    try {
+      await wagmiWeb3Service.initialize();
+      const blockchainDeals = await wagmiWeb3Service.getAllDealsForUser(address);
+      setDeals(blockchainDeals);
+    } catch (error) {
+      console.error('Error fetching deals from blockchain:', error);
+      // Keep existing deals if fetch fails
+    } finally {
+      setIsLoadingDeals(false);
+    }
+  };
+
+  // Fetch deals when user connects or changes
+  useEffect(() => {
+    if (isConnected && address) {
+      refreshDeals();
+    } else {
+      setDeals([]);
+    }
+  }, [isConnected, address]);
+
+  // Legacy connect function for compatibility (Wagmi handles connection automatically)
+  const connectWallet = (walletAddress: string) => {
+    // This is now handled by Wagmi, but we keep for compatibility
+    // The actual connection is managed by MultiWalletConnection component
+    console.log('Wallet connection handled by Wagmi:', walletAddress);
   };
 
   const setUserRole = (role: UserRole) => {
@@ -88,6 +95,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
 
   const addDeal = (deal: Deal) => {
     setDeals(prev => [...prev, deal]);
+    // Also refresh deals to get the latest from blockchain
+    refreshDeals();
   };
 
   const updateDeal = (dealId: string, updates: Partial<Deal>) => {
@@ -103,10 +112,12 @@ export function AppProvider({ children }: { children: ReactNode }) {
       user,
       deals,
       currentRole,
+      isLoadingDeals,
       connectWallet,
       setUserRole,
       addDeal,
-      updateDeal
+      updateDeal,
+      refreshDeals
     }}>
       {children}
     </AppContext.Provider>

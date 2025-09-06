@@ -1,11 +1,11 @@
-import { HardhatRuntimeEnvironment } from "hardhat/types";
 import { DeployFunction } from "hardhat-deploy/types";
+import { ethers } from "hardhat";
 
 /**
  * Deploys the GigPeek contract using hardhat-deploy
  */
-const deployGigPeek: DeployFunction = async function (hre: HardhatRuntimeEnvironment) {
-  const { deployments, getNamedAccounts, network, ethers } = hre;
+const deployGigPeek: DeployFunction = async function (hre: any) {
+  const { deployments, getNamedAccounts, network } = hre;
   const { deploy, log } = deployments;
 
   const { deployer } = await getNamedAccounts();

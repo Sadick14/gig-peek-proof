@@ -1,4 +1,4 @@
-import { Eye, Home, Search, Briefcase, DollarSign, ArrowLeft } from "lucide-react";
+import { Eye, Home, Search, Briefcase, DollarSign, ArrowLeft, HelpCircle } from "lucide-react";
 import { useNavigate, useLocation } from "react-router-dom";
 import {
   Sidebar,
@@ -39,6 +39,11 @@ export function ContractorSidebar({ className }: ContractorSidebarProps) {
       title: "Payment History",
       url: "/contractor/history",
       icon: DollarSign,
+    },
+    {
+      title: "How Payment Works",
+      url: "/contractor/payment-guide",
+      icon: HelpCircle,
     },
   ];
 

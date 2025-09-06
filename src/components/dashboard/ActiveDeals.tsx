@@ -5,6 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { toast } from '@/hooks/use-toast';
+import { wagmiWeb3Service } from '@/services/wagmiWeb3Service';
 import { 
   Clock, 
   CheckCircle, 
@@ -21,7 +22,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 
 export function ActiveDeals() {
-  const { deals, updateDeal } = useApp();
+  const { deals, updateDeal, refreshDeals } = useApp();
   const navigate = useNavigate();
   const [loadingDeal, setLoadingDeal] = useState<string | null>(null);
 
@@ -38,14 +39,28 @@ export function ActiveDeals() {
         description: "Please confirm the transaction in your wallet",
       });
 
-      // Simulate blockchain transaction
-      await new Promise(resolve => setTimeout(resolve, 3000));
+      // Use real Web3 service to release payment
+      const result = await wagmiWeb3Service.releasePayment(dealId);
       
-      updateDeal(dealId, { status: 'completed' });
+      // Refresh deals from blockchain to get latest status
+      await refreshDeals();
       
       toast({
         title: "Payment Released Successfully!",
-        description: `Payment for deal ${dealId.slice(-8)} has been released to the contractor.`
+        description: (
+          <div className="space-y-3">
+            <p>Payment for deal {dealId.slice(-8)} has been released to the contractor.</p>
+            <div className="flex items-center gap-2">
+              <p className="text-xs opacity-75">Transaction: {result.txHash.slice(0, 10)}...</p>
+              <button
+                onClick={() => window.open(`https://sepolia.etherscan.io/tx/${result.txHash}`, '_blank')}
+                className="text-xs underline opacity-75 hover:opacity-100 flex items-center gap-1"
+              >
+                View on Etherscan <ExternalLink className="w-3 h-3" />
+              </button>
+            </div>
+          </div>
+        ),
       });
     } catch (error) {
       toast({

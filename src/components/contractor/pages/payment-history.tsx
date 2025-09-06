@@ -1,7 +1,9 @@
 import { Card } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { CheckCircle, Calendar, DollarSign } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { CheckCircle, Calendar, DollarSign, ExternalLink, Copy } from "lucide-react";
 import { useApp } from "@/context/AppContext";
+import { toast } from "@/hooks/use-toast";
 
 const PaymentHistory = () => {
   const { deals, user } = useApp();
@@ -12,6 +14,18 @@ const PaymentHistory = () => {
   );
 
   const totalEarnings = myCompletedGigs.reduce((sum, deal) => sum + parseFloat(deal.amount || '0'), 0);
+
+  const copyToClipboard = (text: string, type: string) => {
+    navigator.clipboard.writeText(text);
+    toast({
+      title: "Copied!",
+      description: `${type} copied to clipboard`,
+    });
+  };
+
+  const openEtherscan = (hash: string) => {
+    window.open(`https://sepolia.etherscan.io/tx/${hash}`, '_blank');
+  };
 
   if (myCompletedGigs.length === 0) {
     return (
@@ -42,9 +56,18 @@ const PaymentHistory = () => {
           <div className="p-3 bg-success/10 rounded-lg">
             <DollarSign className="w-8 h-8 text-success" />
           </div>
-          <div>
-            <p className="text-3xl font-bold text-success">{totalEarnings.toFixed(3)} ETH</p>
+          <div className="flex-1">
+            <p className="text-3xl font-bold text-success">{totalEarnings.toFixed(4)} ETH</p>
             <p className="text-muted-foreground">Total Earnings from {myCompletedGigs.length} gigs</p>
+            <p className="text-sm text-muted-foreground">
+              ≈ ${(totalEarnings * 3500).toFixed(2)} USD <span className="text-xs opacity-60">(approx.)</span>
+            </p>
+          </div>
+          <div className="text-right">
+            <p className="text-sm text-muted-foreground">Average per gig</p>
+            <p className="text-xl font-semibold text-success">
+              {myCompletedGigs.length > 0 ? (totalEarnings / myCompletedGigs.length).toFixed(4) : '0.0000'} ETH
+            </p>
           </div>
         </div>
       </Card>
@@ -78,11 +101,50 @@ const PaymentHistory = () => {
             </p>
 
             {gig.proofHash && (
-              <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
-                <p className="text-sm font-medium text-success">Proof Hash</p>
-                <p className="text-xs text-muted-foreground font-mono mt-1">
-                  {gig.proofHash}
-                </p>
+              <div className="space-y-3">
+                <div className="p-3 bg-success/10 border border-success/20 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium text-success">Proof Hash</p>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => copyToClipboard(gig.proofHash!, 'Proof hash')}
+                      className="h-6 w-6 p-0"
+                    >
+                      <Copy className="w-3 h-3" />
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground font-mono break-all">
+                    {gig.proofHash}
+                  </p>
+                </div>
+
+                {/* Transaction Details */}
+                <div className="p-3 bg-muted/50 rounded-lg">
+                  <div className="flex items-center justify-between mb-2">
+                    <p className="text-sm font-medium">Payment Transaction</p>
+                    {gig.transactionHash && (
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => openEtherscan(gig.transactionHash!)}
+                        className="h-6 text-xs"
+                      >
+                        <ExternalLink className="w-3 h-3 mr-1" />
+                        View
+                      </Button>
+                    )}
+                  </div>
+                  {gig.transactionHash ? (
+                    <p className="text-xs text-muted-foreground font-mono break-all">
+                      {gig.transactionHash}
+                    </p>
+                  ) : (
+                    <p className="text-xs text-muted-foreground">
+                      Transaction hash not available
+                    </p>
+                  )}
+                </div>
               </div>
             )}
           </Card>

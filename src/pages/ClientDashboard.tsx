@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ClientSidebar } from "@/components/client/client-sidebar";
-import { WalletConnection } from "@/components/ui/wallet-connection";
+import { MultiWalletConnection } from "@/components/ui/multi-wallet-connection";
 import { useApp } from "@/context/AppContext";
 
 // Client Pages
@@ -26,11 +26,7 @@ const ClientDashboard = () => {
           {/* Header */}
           <header className="h-16 flex items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-md px-6">
             <SidebarTrigger />
-            <WalletConnection
-              onConnect={connectWallet}
-              isConnected={user.isConnected}
-              address={user.address}
-            />
+            <MultiWalletConnection onConnect={connectWallet} />
           </header>
 
           {/* Main Content */}

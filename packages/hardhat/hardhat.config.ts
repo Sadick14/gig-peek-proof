@@ -4,7 +4,14 @@ import "hardhat-deploy";
 import "hardhat-deploy-ethers";
 import "dotenv/config";
 
-const config: HardhatUserConfig = {
+// Extend the HardhatUserConfig type to include hardhat-deploy fields
+interface ExtendedHardhatUserConfig extends HardhatUserConfig {
+  namedAccounts?: {
+    [name: string]: any;
+  };
+}
+
+const config: ExtendedHardhatUserConfig = {
   solidity: {
     version: "0.8.20",
     settings: {

@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { ContractorSidebar } from "@/components/contractor/contractor-sidebar";
-import { WalletConnection } from "@/components/ui/wallet-connection";
+import { MultiWalletConnection } from "@/components/ui/multi-wallet-connection";
 import { useApp } from "@/context/AppContext";
 
 // Contractor Pages
@@ -9,6 +9,7 @@ import ContractorOverview from "@/components/contractor/pages/contractor-overvie
 import OpenDeal from "@/components/contractor/pages/open-deal";
 import MyGigs from "@/components/contractor/pages/my-gigs";
 import PaymentHistory from "@/components/contractor/pages/payment-history";
+import HowPaymentWorks from "@/components/contractor/pages/how-payment-works";
 
 const ContractorDashboard = () => {
   const { user, connectWallet } = useApp();
@@ -26,11 +27,7 @@ const ContractorDashboard = () => {
           {/* Header */}
           <header className="h-16 flex items-center justify-between border-b border-border/50 bg-background/80 backdrop-blur-md px-6">
             <SidebarTrigger />
-            <WalletConnection
-              onConnect={connectWallet}
-              isConnected={user.isConnected}
-              address={user.address}
-            />
+            <MultiWalletConnection onConnect={connectWallet} />
           </header>
 
           {/* Main Content */}
@@ -40,6 +37,7 @@ const ContractorDashboard = () => {
               <Route path="/open" element={<OpenDeal />} />
               <Route path="/gigs" element={<MyGigs />} />
               <Route path="/history" element={<PaymentHistory />} />
+              <Route path="/payment-guide" element={<HowPaymentWorks />} />
             </Routes>
           </main>
         </div>
