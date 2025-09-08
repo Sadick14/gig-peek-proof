@@ -2,6 +2,15 @@ import { createContext, useContext, useState, ReactNode, useEffect } from "react
 import { useAccount } from 'wagmi';
 import { wagmiWeb3Service } from '@/services/wagmiWeb3Service';
 
+interface Package {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  deliveryTime: number; // in days
+  revisions: number;
+}
+
 interface Deal {
   id: string;
   contractorAddress: string;
@@ -16,6 +25,12 @@ interface Deal {
   txHash?: string;
   transactionHash?: string; // For payment release transaction
   userRole?: 'client' | 'contractor'; // Add user role for filtering
+  packages?: Package[]; // Add packages for gig tiers
+  selectedPackage?: Package; // The chosen package
+  category?: string;
+  tags?: string[];
+  rating?: number;
+  reviewCount?: number;
 }
 
 interface User {

@@ -21,16 +21,29 @@ import {
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 
+interface Package {
+  id: string;
+  name: string;
+  description: string;
+  price: string;
+  deliveryTime: number;
+  revisions: number;
+}
+
 export function CreateDeal() {
   const { addDeal, refreshDeals } = useApp();
   const navigate = useNavigate();
   const [formData, setFormData] = useState({
-    contractorAddress: '',
     title: '',
     description: '',
-    amount: '',
-    deadline: ''
+    category: '',
+    tags: '',
   });
+  const [packages, setPackages] = useState<Package[]>([
+    { id: '1', name: 'Basic', description: '', price: '', deliveryTime: 3, revisions: 1 },
+    { id: '2', name: 'Standard', description: '', price: '', deliveryTime: 5, revisions: 3 },
+    { id: '3', name: 'Premium', description: '', price: '', deliveryTime: 7, revisions: 5 }
+  ]);
   const [loading, setLoading] = useState(false);
   const [step, setStep] = useState(1);
 
@@ -166,30 +179,37 @@ export function CreateDeal() {
           Back to Dashboard
         </Button>
         <div>
-          <h1 className="text-3xl font-bold">Create New Deal</h1>
-          <p className="text-muted-foreground">Set up a secure escrow deal with a contractor</p>
+          <h1 className="text-3xl font-bold">Create New Gig</h1>
+          <p className="text-muted-foreground">Create a gig listing with multiple packages for clients</p>
         </div>
       </div>
 
       {/* Progress Indicator */}
       <Card className="p-6 bg-gradient-card border-border/50 shadow-card">
         <div className="flex items-center justify-between mb-4">
-          <h3 className="text-lg font-semibold">Deal Creation Progress</h3>
-          <Badge variant="secondary">{step}/2</Badge>
+          <h3 className="text-lg font-semibold">Gig Creation Progress</h3>
+          <Badge variant="secondary">{step}/3</Badge>
         </div>
         <div className="flex items-center gap-4">
           <div className={`flex items-center gap-2 ${step >= 1 ? 'text-primary' : 'text-muted-foreground'}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 1 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
               {step > 1 ? <CheckCircle className="w-4 h-4" /> : '1'}
             </div>
-            <span className="text-sm font-medium">Deal Details</span>
+            <span className="text-sm font-medium">Gig Details</span>
           </div>
           <div className={`w-12 h-0.5 ${step >= 2 ? 'bg-primary' : 'bg-muted'}`} />
           <div className={`flex items-center gap-2 ${step >= 2 ? 'text-primary' : 'text-muted-foreground'}`}>
             <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 2 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
-              2
+              {step > 2 ? <CheckCircle className="w-4 h-4" /> : '2'}
             </div>
-            <span className="text-sm font-medium">Review & Create</span>
+            <span className="text-sm font-medium">Packages</span>
+          </div>
+          <div className={`w-12 h-0.5 ${step >= 3 ? 'bg-primary' : 'bg-muted'}`} />
+          <div className={`flex items-center gap-2 ${step >= 3 ? 'text-primary' : 'text-muted-foreground'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center ${step >= 3 ? 'bg-primary text-primary-foreground' : 'bg-muted'}`}>
+              {step > 3 ? <CheckCircle className="w-4 h-4" /> : '3'}
+            </div>
+            <span className="text-sm font-medium">Review</span>
           </div>
         </div>
       </Card>
@@ -201,33 +221,70 @@ export function CreateDeal() {
               <div className="p-2 bg-primary/10 rounded-lg">
                 <Briefcase className="w-5 h-5 text-primary" />
               </div>
-              <h2 className="text-xl font-semibold">Deal Information</h2>
+              <h2 className="text-xl font-semibold">Gig Information</h2>
             </div>
 
             <div className="space-y-6">
               <div className="space-y-2">
-                <Label htmlFor="contractorAddress" className="text-sm font-medium">
-                  Contractor Wallet Address *
+                <Label htmlFor="title" className="text-sm font-medium">
+                  Gig Title *
                 </Label>
                 <Input
-                  id="contractorAddress"
-                  placeholder="0x742d35Cc6635C0532925a3b8D40C8C3F8b29B2C1"
-                  value={formData.contractorAddress}
-                  onChange={(e) => handleInputChange('contractorAddress', e.target.value)}
-                  className="font-mono"
+                  id="title"
+                  placeholder="e.g., I will design a professional website"
+                  value={formData.title}
+                  onChange={(e) => handleInputChange('title', e.target.value)}
                 />
                 <p className="text-xs text-muted-foreground">
-                  The Ethereum address of the contractor who will complete this work
+                  A clear, catchy title for your gig
                 </p>
               </div>
 
               <div className="space-y-2">
-                <Label htmlFor="title" className="text-sm font-medium">
-                  Project Title *
+                <Label htmlFor="category" className="text-sm font-medium">
+                  Category *
                 </Label>
                 <Input
-                  id="title"
-                  placeholder="e.g., Website Design & Development"
+                  id="category"
+                  placeholder="e.g., Web Development, Graphic Design"
+                  value={formData.category}
+                  onChange={(e) => handleInputChange('category', e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  The category your gig belongs to
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="description" className="text-sm font-medium">
+                  Gig Description *
+                </Label>
+                <Textarea
+                  id="description"
+                  placeholder="Describe what you'll deliver, your process, and any requirements..."
+                  value={formData.description}
+                  onChange={(e) => handleInputChange('description', e.target.value)}
+                  rows={4}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Detailed description of your service and deliverables
+                </p>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tags" className="text-sm font-medium">
+                  Tags (optional)
+                </Label>
+                <Input
+                  id="tags"
+                  placeholder="e.g., react, nodejs, responsive"
+                  value={formData.tags}
+                  onChange={(e) => handleInputChange('tags', e.target.value)}
+                />
+                <p className="text-xs text-muted-foreground">
+                  Comma-separated tags to help clients find your gig
+                </p>
+              </div>
                   value={formData.title}
                   onChange={(e) => handleInputChange('title', e.target.value)}
                 />
