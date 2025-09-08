@@ -4,6 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { 
   Search, 
   Plus, 
@@ -27,8 +28,13 @@ import { MultiWalletConnection } from '@/components/ui/multi-wallet-connection';
 import { GigCard } from '@/components/gigs/GigCard';
 import { GigCreationWizard } from '@/components/gigs/GigCreationWizard';
 import { MarketplaceSearch } from '@/components/marketplace/MarketplaceSearch';
+import { ReviewCard } from '@/components/reviews/ReviewCard';
+import { ReviewSummary } from '@/components/reviews/ReviewSummary';
+import { ChatInterface } from '@/components/messaging/ChatInterface';
+import { ConversationList } from '@/components/messaging/ConversationList';
+import { OnboardingWizard } from '@/components/onboarding/OnboardingWizard';
 import { useNavigate } from 'react-router-dom';
-import { Gig, SearchFilters } from '@/types';
+import { Gig, SearchFilters, Review, Conversation, Message, User as UserType } from '@/types';
 
 const EnhancedDashboard = () => {
   const { 
@@ -48,6 +54,119 @@ const EnhancedDashboard = () => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [marketplaceGigs, setMarketplaceGigs] = useState<Gig[]>([]);
   const [showGigCreation, setShowGigCreation] = useState(false);
+  const [showOnboarding, setShowOnboarding] = useState(false);
+  const [selectedConversationId, setSelectedConversationId] = useState<string>();
+  
+  // Mock data for reviews and conversations
+  const [mockReviews] = useState<Review[]>([
+    {
+      id: '1',
+      orderId: 'order-1',
+      gigId: 'gig-1',
+      reviewerId: 'reviewer-1',
+      reviewer: {
+        id: 'reviewer-1',
+        address: '0x123...',
+        displayName: 'Alice Johnson',
+        avatar: '',
+        isConnected: true,
+        level: { id: '1', name: 'Level 1', color: '#3B82F6', requirements: { completedOrders: 10, rating: 4.5, responseRate: 90, onTimeDelivery: 95 }, benefits: [] },
+        badges: [],
+        rating: 4.8,
+        reviewCount: 25,
+        memberSince: new Date('2023-01-15'),
+        completedOrders: 15,
+        responseTime: 'within 1 hour',
+        languages: ['English'],
+        skills: [],
+        portfolio: [],
+        isVerified: true,
+        isOnline: true,
+        lastSeen: new Date()
+      },
+      revieweeId: user.id,
+      reviewee: user,
+      rating: 5,
+      comment: 'Outstanding work! The design exceeded my expectations and was delivered ahead of schedule. Highly recommend this seller.',
+      helpful: 12,
+      notHelpful: 1,
+      createdAt: new Date('2024-01-10')
+    }
+  ]);
+  
+  const [mockConversations] = useState<Conversation[]>([
+    {
+      id: 'conv-1',
+      participants: [
+        user,
+        {
+          id: 'user-2',
+          address: '0x456...',
+          displayName: 'Bob Smith',
+          avatar: '',
+          isConnected: true,
+          level: { id: '2', name: 'Level 2', color: '#8B5CF6', requirements: { completedOrders: 50, rating: 4.7, responseRate: 95, onTimeDelivery: 98 }, benefits: [] },
+          badges: [],
+          rating: 4.9,
+          reviewCount: 42,
+          memberSince: new Date('2022-08-20'),
+          completedOrders: 58,
+          responseTime: 'within 30 minutes',
+          languages: ['English', 'Spanish'],
+          skills: [],
+          portfolio: [],
+          isVerified: true,
+          isOnline: false,
+          lastSeen: new Date('2024-01-15T10:30:00')
+        }
+      ],
+      lastMessage: {
+        id: 'msg-1',
+        senderId: 'user-2',
+        sender: {} as any,
+        receiverId: user.id,
+        receiver: user,
+        content: 'Hi! I\'m interested in your web development services. Can we discuss the requirements?',
+        attachments: [],
+        isRead: false,
+        sentAt: new Date('2024-01-15T11:45:00'),
+        type: 'text'
+      },
+      unreadCount: 2,
+      orderId: 'order-123',
+      createdAt: new Date('2024-01-15T09:00:00'),
+      updatedAt: new Date('2024-01-15T11:45:00')
+    }
+  ]);
+  
+  const [mockMessages] = useState<Message[]>([
+    {
+      id: 'msg-1',
+      orderId: 'order-123',
+      senderId: 'user-2',
+      sender: mockConversations[0].participants[1],
+      receiverId: user.id,
+      receiver: user,
+      content: 'Hi! I\'m interested in your web development services. Can we discuss the requirements?',
+      attachments: [],
+      isRead: false,
+      sentAt: new Date('2024-01-15T11:45:00'),
+      type: 'text'
+    },
+    {
+      id: 'msg-2',
+      orderId: 'order-123',
+      senderId: user.id,
+      sender: user,
+      receiverId: 'user-2',
+      receiver: mockConversations[0].participants[1],
+      content: 'Hello! I\'d be happy to help with your project. What kind of website are you looking to build?',
+      attachments: [],
+      isRead: true,
+      sentAt: new Date('2024-01-15T11:50:00'),
+      type: 'text'
+    }
+  ]);
 
   // If wallet not connected, redirect to home
   if (!user.isConnected) {
@@ -78,11 +197,35 @@ const EnhancedDashboard = () => {
   const handleContactSeller = (sellerId: string) => {
     // Open messaging interface
     console.log('Contact seller:', sellerId);
+    setActiveTab('messages');
+    // TODO: Create or find conversation with seller
   };
 
   const handleToggleFavorite = (gigId: string) => {
     // Toggle favorite status
     console.log('Toggle favorite:', gigId);
+    // TODO: Implement favorite functionality
+  };
+
+  const handleReviewHelpful = (reviewId: string) => {
+    console.log('Mark review helpful:', reviewId);
+    // TODO: Implement review helpful functionality
+  };
+
+  const handleReviewNotHelpful = (reviewId: string) => {
+    console.log('Mark review not helpful:', reviewId);
+    // TODO: Implement review not helpful functionality
+  };
+
+  const handleReplyToReview = (reviewId: string) => {
+    console.log('Reply to review:', reviewId);
+    // TODO: Implement review reply functionality
+  };
+
+  const handleCompleteOnboarding = (userData: Partial<UserType>) => {
+    console.log('Complete onboarding:', userData);
+    // TODO: Update user profile with onboarding data
+    setShowOnboarding(false);
   };
 
   const handleGigCreated = (gig: Gig) => {
@@ -368,14 +511,46 @@ const EnhancedDashboard = () => {
               <p className="text-muted-foreground">Communicate with buyers and sellers</p>
             </div>
 
-            <Card className="p-12 text-center">
-              <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Messaging System</h3>
-              <p className="text-muted-foreground mb-4">
-                Real-time messaging will be available soon
-              </p>
-              <Badge variant="secondary">Coming Soon</Badge>
-            </Card>
+            <div className="grid lg:grid-cols-5 gap-6">
+              {/* Conversation List */}
+              <div className="lg:col-span-2">
+                <ConversationList
+                  conversations={mockConversations}
+                  selectedConversationId={selectedConversationId}
+                  onSelectConversation={setSelectedConversationId}
+                  onSearch={(query) => console.log('Search conversations:', query)}
+                />
+              </div>
+
+              {/* Chat Interface */}
+              <div className="lg:col-span-3">
+                {selectedConversationId ? (
+                  <ChatInterface
+                    messages={mockMessages}
+                    currentUser={user}
+                    otherUser={mockConversations[0].participants[1]}
+                    onSendMessage={(content, attachments) => {
+                      console.log('Send message:', { content, attachments });
+                      // TODO: Implement real message sending
+                    }}
+                    onFileUpload={(files) => {
+                      console.log('Upload files:', files);
+                      // TODO: Implement file upload
+                    }}
+                  />
+                ) : (
+                  <Card className="h-[600px] bg-gradient-card border-border/50 flex items-center justify-center">
+                    <div className="text-center">
+                      <MessageCircle className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                      <h3 className="text-xl font-semibold mb-2">Select a conversation</h3>
+                      <p className="text-muted-foreground">
+                        Choose a conversation to start messaging
+                      </p>
+                    </div>
+                  </Card>
+                )}
+              </div>
+            </div>
           </TabsContent>
 
           {/* Analytics Tab */}
@@ -448,14 +623,161 @@ const EnhancedDashboard = () => {
               <p className="text-muted-foreground">Manage your account and preferences</p>
             </div>
 
-            <Card className="p-12 text-center">
-              <User className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
-              <h3 className="text-xl font-semibold mb-2">Profile Management</h3>
-              <p className="text-muted-foreground mb-4">
-                Enhanced profile features coming soon
-              </p>
-              <Badge variant="secondary">Coming Soon</Badge>
-            </Card>
+            <div className="grid lg:grid-cols-3 gap-6">
+              {/* Profile Info */}
+              <div className="lg:col-span-2 space-y-6">
+                {/* Profile Card */}
+                <Card className="bg-gradient-card border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center justify-between">
+                      <span>Your Profile</span>
+                      <Button 
+                        variant="outline" 
+                        size="sm"
+                        onClick={() => setShowOnboarding(true)}
+                      >
+                        Complete Setup
+                      </Button>
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent className="space-y-4">
+                    <div className="flex items-center gap-4">
+                      <Avatar className="w-16 h-16">
+                        <AvatarImage src={user.avatar} alt={user.displayName} />
+                        <AvatarFallback className="bg-primary/10 text-primary text-lg">
+                          {user.displayName?.charAt(0) || user.address.slice(0, 2).toUpperCase()}
+                        </AvatarFallback>
+                      </Avatar>
+                      <div className="flex-1">
+                        <h3 className="text-xl font-semibold">
+                          {user.displayName || `User ${user.address.slice(0, 6)}...`}
+                        </h3>
+                        <div className="flex items-center gap-2 mt-1">
+                          <Badge variant="secondary">{user.level.name}</Badge>
+                          {user.isVerified && (
+                            <Badge variant="default" className="bg-green-100 text-green-800">
+                              Verified
+                            </Badge>
+                          )}
+                        </div>
+                        <p className="text-sm text-muted-foreground mt-2">
+                          {user.bio || 'No bio available. Complete your profile to get more orders.'}
+                        </p>
+                      </div>
+                    </div>
+
+                    {/* Quick Stats */}
+                    <div className="grid grid-cols-3 gap-4 pt-4 border-t border-border/50">
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{user.completedOrders}</div>
+                        <div className="text-sm text-muted-foreground">Orders</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{user.rating.toFixed(1)}</div>
+                        <div className="text-sm text-muted-foreground">Rating</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="text-2xl font-bold text-primary">{user.responseTime}</div>
+                        <div className="text-sm text-muted-foreground">Response</div>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+
+                {/* Recent Reviews */}
+                <Card className="bg-gradient-card border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Star className="w-5 h-5 text-yellow-400" />
+                      Recent Reviews
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {mockReviews.length > 0 ? (
+                      <div className="space-y-4">
+                        {mockReviews.slice(0, 3).map((review) => (
+                          <ReviewCard
+                            key={review.id}
+                            review={review}
+                            onHelpful={handleReviewHelpful}
+                            onNotHelpful={handleReviewNotHelpful}
+                            onReply={handleReplyToReview}
+                            showReplyButton={true}
+                          />
+                        ))}
+                        <Button variant="outline" className="w-full">
+                          View All Reviews
+                        </Button>
+                      </div>
+                    ) : (
+                      <div className="text-center py-8">
+                        <Star className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
+                        <h3 className="font-semibold mb-2">No reviews yet</h3>
+                        <p className="text-sm text-muted-foreground">
+                          Complete your first order to receive reviews
+                        </p>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              </div>
+
+              {/* Sidebar */}
+              <div className="space-y-6">
+                {/* Review Summary */}
+                <ReviewSummary reviews={mockReviews} />
+
+                {/* Skills */}
+                <Card className="bg-gradient-card border-border/50">
+                  <CardHeader>
+                    <CardTitle className="flex items-center gap-2">
+                      <Award className="w-5 h-5" />
+                      Skills
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    {user.skills && user.skills.length > 0 ? (
+                      <div className="flex flex-wrap gap-2">
+                        {user.skills.map((skill) => (
+                          <Badge key={skill} variant="secondary">
+                            {skill}
+                          </Badge>
+                        ))}
+                      </div>
+                    ) : (
+                      <div className="text-center py-4">
+                        <p className="text-sm text-muted-foreground mb-3">
+                          Add skills to help clients find you
+                        </p>
+                        <Button 
+                          variant="outline" 
+                          size="sm"
+                          onClick={() => setShowOnboarding(true)}
+                        >
+                          Add Skills
+                        </Button>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+
+                {/* Languages */}
+                <Card className="bg-gradient-card border-border/50">
+                  <CardHeader>
+                    <CardTitle>Languages</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {user.languages.map((language) => (
+                        <Badge key={language} variant="outline">
+                          {language}
+                        </Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            </div>
           </TabsContent>
         </Tabs>
       </div>
@@ -466,6 +788,17 @@ const EnhancedDashboard = () => {
           onClose={() => setShowGigCreation(false)}
           onSuccess={handleGigCreated}
         />
+      )}
+
+      {/* Onboarding Wizard */}
+      {showOnboarding && (
+        <div className="fixed inset-0 bg-background/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <OnboardingWizard
+            currentUser={user}
+            onComplete={handleCompleteOnboarding}
+            onSkip={() => setShowOnboarding(false)}
+          />
+        </div>
       )}
     </div>
   );
