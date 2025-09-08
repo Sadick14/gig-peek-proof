@@ -57,43 +57,23 @@ export function AppProvider({ children }: { children: ReactNode }) {
   // Use Wagmi's useAccount hook for wallet connection state
   const { address, isConnected } = useAccount();
   
-  // Create enhanced user object from Wagmi state (temporary mock for testing)
+  // Create enhanced user object from Wagmi state
   const user: User = {
-    id: address || "0x742d35Cc4Bf2D4C2c5f5c9b4c1e5B8C9D1f3E6f8",
-    address: address || "0x742d35Cc4Bf2D4C2c5f5c9b4c1e5B8C9D1f3E6f8",
-    isConnected: isConnected || true, // Mock connection for testing
-    displayName: "Alex Chen",
-    bio: "Full-stack developer specializing in React, Node.js, and blockchain development. 5+ years of experience building scalable web applications.",
-    level: FREELANCER_LEVELS[1], // Level 1 seller
-    badges: [
-      {
-        id: 'verified',
-        name: 'Verified Seller',
-        description: 'Identity verified seller',
-        icon: 'shield-check',
-        color: '#10B981',
-        earnedAt: new Date('2024-01-01')
-      }
-    ],
-    rating: 4.8,
-    reviewCount: 127,
-    memberSince: new Date('2023-06-15'),
-    completedOrders: 89,
-    responseTime: "within 1 hour",
-    languages: ["English", "Spanish", "Mandarin"],
-    skills: ["React", "Node.js", "TypeScript", "Solidity", "Web3", "UI/UX Design"],
-    portfolio: [
-      {
-        id: 'portfolio-1',
-        title: 'DeFi Trading Dashboard',
-        description: 'Real-time crypto trading interface with advanced charts',
-        imageUrl: '',
-        tags: ['React', 'Web3', 'DeFi'],
-        createdAt: new Date('2023-12-01')
-      }
-    ],
-    isVerified: true,
-    isOnline: true,
+    id: address || "",
+    address: address || "",
+    isConnected: isConnected,
+    level: FREELANCER_LEVELS[0], // Default to New Seller
+    badges: [],
+    rating: 0,
+    reviewCount: 0,
+    memberSince: new Date(),
+    completedOrders: 0,
+    responseTime: "within 24 hours",
+    languages: ["English"],
+    skills: [],
+    portfolio: [],
+    isVerified: false,
+    isOnline: isConnected,
     lastSeen: new Date()
   };
 
