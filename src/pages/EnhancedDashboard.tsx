@@ -25,6 +25,7 @@ import {
 } from 'lucide-react';
 import { MultiWalletConnection } from '@/components/ui/multi-wallet-connection';
 import { GigCard } from '@/components/gigs/GigCard';
+import { GigCreationWizard } from '@/components/gigs/GigCreationWizard';
 import { MarketplaceSearch } from '@/components/marketplace/MarketplaceSearch';
 import { useNavigate } from 'react-router-dom';
 import { Gig, SearchFilters } from '@/types';
@@ -46,6 +47,7 @@ const EnhancedDashboard = () => {
   const [activeTab, setActiveTab] = useState('marketplace');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [marketplaceGigs, setMarketplaceGigs] = useState<Gig[]>([]);
+  const [showGigCreation, setShowGigCreation] = useState(false);
 
   // If wallet not connected, redirect to home
   if (!user.isConnected) {
@@ -81,6 +83,11 @@ const EnhancedDashboard = () => {
   const handleToggleFavorite = (gigId: string) => {
     // Toggle favorite status
     console.log('Toggle favorite:', gigId);
+  };
+
+  const handleGigCreated = (gig: Gig) => {
+    setMarketplaceGigs(prev => [gig, ...prev]);
+    setActiveTab('my-gigs');
   };
 
   const myGigs = gigs.filter(gig => gig.sellerId === user.address);
@@ -187,7 +194,7 @@ const EnhancedDashboard = () => {
                 <h2 className="text-3xl font-bold">Discover Services</h2>
                 <p className="text-muted-foreground">Find the perfect freelancer for your project</p>
               </div>
-              <Button onClick={() => setActiveTab('my-gigs')} className="bg-gradient-primary">
+              <Button onClick={() => setShowGigCreation(true)} className="bg-gradient-primary">
                 <Plus className="w-4 h-4 mr-2" />
                 Create Gig
               </Button>
@@ -256,7 +263,10 @@ const EnhancedDashboard = () => {
                 <h2 className="text-3xl font-bold">My Gigs</h2>
                 <p className="text-muted-foreground">Manage your service offerings</p>
               </div>
-              <Button className="bg-gradient-primary">
+              <Button 
+                className="bg-gradient-primary"
+                onClick={() => setShowGigCreation(true)}
+              >
                 <Plus className="w-4 h-4 mr-2" />
                 Create New Gig
               </Button>
@@ -269,7 +279,10 @@ const EnhancedDashboard = () => {
                 <p className="text-muted-foreground mb-4">
                   Create your first gig and start earning cryptocurrency
                 </p>
-                <Button className="bg-gradient-primary">
+                <Button 
+                  className="bg-gradient-primary"
+                  onClick={() => setShowGigCreation(true)}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Create Your First Gig
                 </Button>
@@ -446,6 +459,14 @@ const EnhancedDashboard = () => {
           </TabsContent>
         </Tabs>
       </div>
+
+      {/* Gig Creation Wizard */}
+      {showGigCreation && (
+        <GigCreationWizard
+          onClose={() => setShowGigCreation(false)}
+          onSuccess={handleGigCreated}
+        />
+      )}
     </div>
   );
 };
