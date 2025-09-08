@@ -23,15 +23,11 @@ interface User {
   isConnected: boolean;
 }
 
-type UserRole = 'client' | 'contractor' | null;
-
 interface AppContextType {
   user: User;
   deals: Deal[];
-  currentRole: UserRole;
   isLoadingDeals: boolean;
   connectWallet: (address: string) => void;
-  setUserRole: (role: UserRole) => void;
   addDeal: (deal: Deal) => void;
   updateDeal: (dealId: string, updates: Partial<Deal>) => void;
   refreshDeals: () => Promise<void>;
@@ -40,7 +36,6 @@ interface AppContextType {
 const AppContext = createContext<AppContextType | undefined>(undefined);
 
 export function AppProvider({ children }: { children: ReactNode }) {
-  const [currentRole, setCurrentRole] = useState<UserRole>(null);
   const [deals, setDeals] = useState<Deal[]>([]);
   const [isLoadingDeals, setIsLoadingDeals] = useState(false);
   
@@ -94,9 +89,6 @@ export function AppProvider({ children }: { children: ReactNode }) {
     console.log('Wallet connection handled by Wagmi:', walletAddress);
   };
 
-  const setUserRole = (role: UserRole) => {
-    setCurrentRole(role);
-  };
 
   const addDeal = (deal: Deal) => {
     setDeals(prev => [...prev, deal]);
@@ -116,10 +108,8 @@ export function AppProvider({ children }: { children: ReactNode }) {
     <AppContext.Provider value={{
       user,
       deals,
-      currentRole,
       isLoadingDeals,
       connectWallet,
-      setUserRole,
       addDeal,
       updateDeal,
       refreshDeals
